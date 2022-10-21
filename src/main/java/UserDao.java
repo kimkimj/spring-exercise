@@ -153,6 +153,42 @@ public class UserDao {
         return count;
     }
 
+    public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException {
+        Connection conn = null;
+        PreparedStatement ps = null;
+
+        try {
+            conn = connectionMaker.getConnection();
+
+            StatementStrategy strategy = new DeleteAllStatement();
+            ps = strategy.makePreparedStatement(conn);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            if (ps != null) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+
+    }
+
+    public void deleteAll() throws SQLException {
+        jdbcContextWithStatementStrategy(new DeleteAllStrategyt());
+    }
+
+
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         UserDao userDao = new UserDao();
         userDao.add(new User("7", "Ruru", "1123457"));
