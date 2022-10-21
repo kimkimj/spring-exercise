@@ -3,9 +3,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Map;
 
-public class AWSConnectionMaker implements ConnectionMaker{
+public class AwsConnectionMaker implements ConnectionMaker{
     @Override
-    public Connection getConnection() throws ClassNotFoundException, SQLException {
+    public Connection makeConnection() throws ClassNotFoundException, SQLException {
         Map<String, String> env = System.getenv();
 
         //jdbc사용, 드라이버 로드

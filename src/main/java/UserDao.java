@@ -1,86 +1,162 @@
-import java.sql.*;
-import java.util.Map;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class UserDao {
-    private ConnectionMaker connectionMaker;
-    public UserDao()
-    {
-        this.connectionMaker = new AWSConnectionMaker();
-    }
-    public UserDao(ConnectionMaker connectionMaker){
+    private ConnectionMaker connectionMaker = new AwsConnectionMaker();
+    public UserDao(){
 
-        this.connectionMaker = new AWSConnectionMaker();
+    }
+
+    public UserDao(ConnectionMaker connectionMaker){
+        this.connectionMaker = connectionMaker;
+
     }
 
     public void add(User user) throws SQLException, ClassNotFoundException {
 
-        //db접속
-        Connection c = connectionMaker.getConnection();
+        Connection c = null;
+        PreparedStatement ps = null;
+        try {
 
-        //쿼리문 작성(insert)
-        PreparedStatement ps = c.prepareStatement("INSERT INTO users(id, name, password) VALUES(?,?,?)");
-        ps.setString(1, user.getId());
-        ps.setString(2, user.getName());
-        ps.setString(3, user.getPassword());
+            c = connectionMaker.makeConnection();
+            ps = c.prepareStatement("INSERT INTO users(id, name, password) VALUES(?, ?, ?)");
+            ps.setString(1, user.getId());
+            ps.setString(2, user.getName());
+            ps.setString(3, user.getPassword());
+            ps.executeUpdate();
 
-        /*status 확인하기
-        int status = ps.executeUpdate();
-        System.out.println(status);
-*/
-        // execute query
-        ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
 
-        //닫기
-        ps.close();
-        c.close();
-        System.out.println("DB연동 완료");
+                }
+            }
+
+            if(c != null){
+                try {
+                    c.close();
+                } catch (SQLException e) {
+
+                }
+            }
+        }
+
     }
 
-    public User findById(String id) throws ClassNotFoundException, SQLException {
+    public User findById(String id) throws SQLException, ClassNotFoundException {
+        Connection c = connectionMaker.makeConnection();
 
-        // DB 접속
-        Connection c = connectionMaker.getConnection();
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM users WHERE id = ?");
 
-        //쿼리문 작성(select)
-        PreparedStatement ps = c.prepareStatement("SELECT id,name,password FROM users WHERE id = ?");
         ps.setString(1, id);
 
-        // executeQuery: resultset객체에 결과집합 담기, 주로 select문에서 실행
         ResultSet rs = ps.executeQuery();
 
-        //select문의 존재여부 확인(다음 행이 존재하면 true 리턴)
-        rs.next();
-        User user = new User(rs.getString("id"),
-                rs.getString("name"), rs.getString("password"));
+        User user = null;
+        if (rs.next()) {
+            user = new User(rs.getString(1), rs.getString(2), rs.getString(3));
+        }
+
         rs.close();
         ps.close();
         c.close();
+
+        if(user == null){
+            throw new EmptyResultDataAccessException(1);
+        }
+
         return user;
+
     }
 
     public void deleteAll() throws SQLException, ClassNotFoundException {
-        Connection c = connectionMaker.getConnection();
+        Connection c = null;
+        PreparedStatement ps = null;
+        try {
+            c = connectionMaker.makeConnection();
+            ps = c.prepareStatement("delete from users");
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
 
-        PreparedStatement ps = c.prepareStatement("delete from users");
+                }
+            }
 
-        ps.executeUpdate();
-        ps.close();
-        c.close();
+            if(c != null){
+                try {
+                    c.close();
+                } catch (SQLException e) {
+
+                }
+            }
+        }
     }
 
     public int getCount() throws SQLException, ClassNotFoundException {
-        Connection c = connectionMaker.getConnection();
+        Connection c = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        int count = 0;
+        try {
 
-        PreparedStatement ps = c.prepareStatement("select count(*) from users");
+            c = connectionMaker.makeConnection();
+            ps = c.prepareStatement("select count(*) from users");
+            rs = ps.executeQuery();
+            rs.next();
+            count = rs.getInt(1);
 
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        int count = rs.getInt(1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } finally {
 
-        rs.close();
-        ps.close();
-        c.close();
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
 
+                }
+            }
+            if (ps!=null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+
+                }
+            }
+            if (c!=null){
+                try {
+                    c.close();
+                } catch (SQLException e) {
+
+                }
+            }
+        }
         return count;
     }
+
+    public static void main(String[] args) throws SQLException, ClassNotFoundException {
+        UserDao userDao = new UserDao();
+        userDao.add(new User("7", "Ruru", "1123457"));
+
+    }
+
 }

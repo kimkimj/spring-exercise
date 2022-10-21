@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 public class UserDaoFactory {
     @Bean
     public UserDao awsUserDao() {
-        AWSConnectionMaker awsConnectionMaker = new AWSConnectionMaker();
+        AwsConnectionMaker awsConnectionMaker = new AwsConnectionMaker();
         UserDao userDao = new UserDao(awsConnectionMaker);
         return userDao;
     }
